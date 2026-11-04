@@ -13,7 +13,8 @@ class ChatViewModel : ViewModel() {
 
     val messages = mutableStateListOf<ChatMessage>()
     val apiKey = mutableStateOf("")
-    val model = mutableStateOf(DEFAULT_MODEL)
+    // Теперь модель всегда одна — авто-роутер OpenRouter
+    val model = mutableStateOf("openrouter/free")
     val busy = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
 
@@ -21,15 +22,8 @@ class ChatViewModel : ViewModel() {
     private val main = Handler(Looper.getMainLooper())
 
     companion object {
-        const val DEFAULT_MODEL = "kimi-k2-0711-preview"
-        val MODELS = listOf(
-            "kimi-k2-0711-preview",
-            "kimi-k2-turbo-preview",
-            "kimi-latest",
-            "moonshot-v1-8k",
-            "moonshot-v1-32k",
-            "moonshot-v1-128k"
-        )
+        // Оставляем список, но он больше не используется для выбора
+        val MODELS = listOf("openrouter/free")
     }
 
     fun send(text: String, attachmentName: String?) {
