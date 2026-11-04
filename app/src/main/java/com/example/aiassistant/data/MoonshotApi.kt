@@ -35,6 +35,7 @@ object MoonshotApi {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(180, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true) // Включаем авто-повтор
         .build()
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -54,42 +55,52 @@ object MoonshotApi {
             return
         }
         Thread {
-            try {
-                val payload = json.encodeToString(
-                    ChatRequest.serializer(),
-                    ChatRequest(model = model, messages = history, stream = true)
-                )
-                val request = Request.Builder()
-                    .url("$baseUrl/chat/completions")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Accept", "text/event-stream")
-                    .post(payload.toRequestBody(mediaType))
-                    .build()
+            var attempts = 0
+            val maxAttempts = 3
+            while (attempts < maxAttempts) {
+                attempts++
+                try {
+                    val payload = json.encodeToString(
+                        ChatRequest.serializer(),
+                        ChatRequest(model = model, messages = history, stream = true)
+                    )
+                    val request = Request.Builder()
+                        .url("$baseUrl/chat/completions")
+                        .addHeader("Authorization", "Bearer $apiKey")
+                        .addHeader("Accept", "text/event-stream")
+                        .post(payload.toRequestBody(mediaType))
+                        .build()
 
-                client.newCall(request).execute().use { resp ->
-                    if (!resp.isSuccessful) {
-                        val detail = resp.body?.string()?.take(300).orEmpty()
-                        onError("Ошибка API ${resp.code}: $detail")
-                        return@Thread
-                    }
-                    val source = resp.body!!.source()
-                    while (true) {
-                        val line = source.readUtf8Line() ?: break
-                        val trimmed = line.trim()
-                        if (!trimmed.startsWith("data:")) continue
-                        val data = trimmed.removePrefix("data:").trim()
-                        if (data == "[DONE]") break
-                        try {
-                            val chunk = json.decodeFromString(Chunk.serializer(), data)
-                            chunk.choices?.firstOrNull()?.delta?.content?.let(onToken)
-                        } catch (_: Exception) {
+                    client.newCall(request).execute().use { resp ->
+                        if (!resp.isSuccessful) {
+                            val detail = resp.body?.string()?.take(300).orEmpty()
+                            onError("Ошибка API ${resp.code}: $detail")
+                            return@Thread
+                        }
+                        val source = resp.body!!.source()
+                        while (true) {
+                            val line = source.readUtf8Line() ?: break
+                            val trimmed = line.trim()
+                            if (!trimmed.startsWith("data:")) continue
+                            val data = trimmed.removePrefix("data:").trim()
+                            if (data == "[DONE]") break
+                            try {
+                                val chunk = json.decodeFromString(Chunk.serializer(), data)
+                                chunk.choices?.firstOrNull()?.delta?.content?.let(onToken)
+                            } catch (_: Exception) {
+                            }
                         }
                     }
+                    onDone()
+                    return@Thread // Успех, выходим из цикла
+                } catch (e: Exception) {
+                    if (attempts >= maxAttempts) {
+                        onError("Сетевая ошибка после $maxAttempts попыток: ${e.message}")
+                        onDone()
+                    } else {
+                        Thread.sleep(1000) // Ждем секунду перед повтором
+                    }
                 }
-                onDone()
-            } catch (e: Exception) {
-                onError(e.message ?: "Сетевая ошибка")
-                onDone()
             }
         }.start()
     }
