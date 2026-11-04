@@ -13,7 +13,8 @@ class ChatViewModel : ViewModel() {
 
     val messages = mutableStateListOf<ChatMessage>()
     val apiKey = mutableStateOf("")
-    val model = mutableStateOf("orcarouter/free")
+    // Теперь здесь жестко зашита конкретная бесплатная модель
+    val model = mutableStateOf("deepseek/deepseek-v4-flash-free")
     val busy = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
 
@@ -21,7 +22,7 @@ class ChatViewModel : ViewModel() {
     private val main = Handler(Looper.getMainLooper())
 
     companion object {
-        val MODELS = listOf("orcarouter/free")
+        val MODELS = listOf("deepseek/deepseek-v4-flash-free")
     }
 
     fun send(text: String, attachmentName: String?) {
