@@ -30,8 +30,7 @@ data class Chunk(val choices: List<Choice>? = null)
 
 object MoonshotApi {
 
-    // Меняем адрес на OpenRouter
-    var baseUrl: String = "https://openrouter.ai/api/v1"
+    var baseUrl: String = "https://api.orcarouter.ai/v1"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -50,7 +49,7 @@ object MoonshotApi {
         onDone: () -> Unit
     ) {
         if (apiKey.isBlank()) {
-            onError("Сначала введите API-ключ OpenRouter в настройках")
+            onError("Сначала введите API-ключ OrcaRouter в настройках")
             onDone()
             return
         }
@@ -64,8 +63,6 @@ object MoonshotApi {
                     .url("$baseUrl/chat/completions")
                     .addHeader("Authorization", "Bearer $apiKey")
                     .addHeader("Accept", "text/event-stream")
-                    .addHeader("HTTP-Referer", "https://github.com/GitRonqualone/Ii") // Опционально
-                    .addHeader("X-Title", "AI Assistant") // Опционально
                     .post(payload.toRequestBody(mediaType))
                     .build()
 
