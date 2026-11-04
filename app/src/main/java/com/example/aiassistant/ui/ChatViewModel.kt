@@ -13,8 +13,7 @@ class ChatViewModel : ViewModel() {
 
     val messages = mutableStateListOf<ChatMessage>()
     val apiKey = mutableStateOf("")
-    // Теперь модель всегда одна — авто-роутер OpenRouter
-    val model = mutableStateOf("openrouter/free")
+    val model = mutableStateOf("orcarouter/free")
     val busy = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
 
@@ -22,8 +21,7 @@ class ChatViewModel : ViewModel() {
     private val main = Handler(Looper.getMainLooper())
 
     companion object {
-        // Оставляем список, но он больше не используется для выбора
-        val MODELS = listOf("openrouter/free")
+        val MODELS = listOf("orcarouter/free")
     }
 
     fun send(text: String, attachmentName: String?) {
